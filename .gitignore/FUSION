@@ -1,0 +1,65 @@
+pause
+
+REM OS PROGRAMAS FUSION SÃO, DE FORMA GERAL, EXECUTÁVEIS VIA LINHA DE COMANDOS. ESSES COMANDOS DEVEM SER SALVOS EM UM ARQUIVO 
+REM EXECUTÁVEL (.bat) E EXECUTAODS POSTERIORMENTE
+
+REM Dados: Arquivo Example data http://forsys.cfr.washington.edu/fusion/fusionlatest.html
+
+REM TRANSFORMA O ARQUIVO .lda em .las
+c:\FUSION\LDA2LAS C:\FUSION\Example\lda_4800K_data.lda C:\FUSION\Example\las_4800K_data.las
+
+REM REMOVE OUTLIER - REMOVE OS RETORNOS ACIMA OU ABAIXO DE 4 VEZES O DESVIO PADRÃO  COM JANELA DE 10m DE DIÂMETRO
+c:\FUSION\FilterData outlier 4.0 10 C:\FUSION\Example\las_4800K_data_filtered.las C:\FUSION\Example\las_4800K_data.las
+
+REM SELECIONA OS RETORNOS DO SOLO, COM PIXEL DE 8m. ESSA ETAPA NÃO DEFINE O TAMANHO DE PIXEL DOS MODELOS DE SUPERFÍCIE (.dtm)
+c:\FUSION\GroundFilter C:\FUSION\Example\las_4800K_data_gnd_filtered.las 8 C:\FUSION\Example\las_4800K_data_filtered.las
+
+REM CRIA O MODELO DIGITAL DE TERRENO (DTM) .dtm , com pixel de 1m
+c:\FUSION\GridSurfaceCreate C:\FUSION\Example\las_4800K_data_gnd_dtm.dtm 1 m m 1 0 0 0 C:\FUSION\Example\las_4800K_data_gnd_filtered.las
+
+REM MODELO DIGITAL DE COPA (CHM). COMPUTA O MODELO DE SUPERFÍCIE (DSM) E SUBTRAI DO MODELO DIGITAL DE TERRENO USANDO O 
+REM PARÂMETRO (/ground)
+c:\FUSION\CanopyModel /ground:C:\FUSION\Example\las_4800K_data_gnd_dtm.dtm C:\FUSION\Example\las_4800K_data_chm.dtm 1 m m 1 0 0 0 C:\FUSION\Example\las_4800K_data_filtered.las
+
+REM CHM PARA XYZ PICTURE DE 1m (PODE SER USADO PARA QUALQUER MODELO DE SUPERFÍCIE)
+c:\FUSION\DTM2XYZ C:\FUSION\Example\las_4800K_data_chm.dtm C:\FUSION\Example\las_4800K_data_xyz.xyz
+
+REM CHM PARA RASTER (.asc) PICTURE DE 1m (PODE SER USADO PARA QUALQUER MODELO DE SUPERFÍCIE)
+c:\FUSION\DTM2ASCII C:\FUSION\Example\las_4800K_data_chm.dtm C:\FUSION\Example\las_4800K_data_chm_asc.asc
+
+REM CRIA UM ARQUIVO (.csv) COM A LOCALIZAÇÃO DAS MAIORES ÁRVORES DO CHM. DEFINE VALORES 0 PARA (A, B, C, D, E e F) 
+REM PARA TORNAR A JANELA COM DIÂMETRO CONSTANTE DE 1000m (A). 
+REM O PARÂMETRO /img24 GERA UMA IMAGEM COM OS PIXELS DE MAIORES VALORES EM VERMELHO, E OS MENORES EM AZUL
+set A=1000
+set B=0
+set C=0
+set D=0
+set E=0
+set F=0
+
+c:\FUSION\CanopyMaxima /wse:%A%,%B%,%C%,%D%,%E%,%F% /img24 C:\FUSION\Example\las_4800K_data_chm.dtm arquivo_lidar_canopy_max.csv
+
+REM CLOUDMETRICS - COMPUTA AS MÉTRICAS DA NUVEM DE PONTOS
+c:\FUSION\CloudMetrics C:\FUSION\Example\las_4800K_data.las C:\FUSION\Example\las_4800K_data_cloudmetrics.csv
+
+REM TOPOMETRICS COMPUTA AS MÉTRICAS DOS MODELOS DE SUPERFÍCIE (.dtm): DTM,DSM e CHM.
+REM ESSA ETAPA PRECISA DA LATITUDE MÉDIA PARA CALCULAR O ÍNDICE DE RADIAÇÃO SOLAR.
+REM LATITUDE NORTE É POSITIVA E LATITUDE SUL É NEGATIVA
+c:\FUSION\TopoMetrics C:\FUSION\Example\las_4800K_data_gnd_dtm.dtm 30 30 567765.0000 100 arquivo_lidar_topometrics.csv
+
+REM CLIPDATA - SELECIONA OS RETORNOS DA NUVEM DE PONTOS DE UMA ÁREA ESPECÍFICA
+c:\FUSION\clipdata C:\FUSION\Example\las_4800K_data_gnd_filtered.las C:\FUSION\Example\las_4800K_data_gnd_cortado1.las 973560.0000 566250.0000 977820.0000 567765.0000
+
+c:\FUSION\clipdata C:\FUSION\Example\las_4800K_data_gnd_filtered.las C:\FUSION\Example\las_4800K_data_gnd_cortado2.las 973560.0000 567765.0000 977820.0000 569280.0000
+
+REM CLIPDTM - SELECIONA UMA REGIÃO ESPECÍFICA DOS MODELOS DE SUPERÍCIE (.dtm)
+c:\FUSION\ClipDTM C:\FUSION\Example\las_4800K_data_gnd_dtm.dtm C:\FUSION\Example\las_4800K_data_gnd_dtm_cortado1.dtm 973560.0000 566250.0000 977820.0000 567765.0000
+
+c:\FUSION\ClipDTM C:\FUSION\Example\las_4800K_data_gnd_dtm.dtm C:\FUSION\Example\las_4800K_data_gnd_dtm_cortado2.dtm 973560.0000 567765.0000 977820.0000 569280.0000
+
+REM POLYCLIPDATA - SELECIONA OS RETORNOS DA NUVEM DE PONTOS A PARTIR DE UM SHAPEFILE CONTENDO OS POLÍGOS DE INTERESSE
+c:\FUSION\PolyClipData C:\FUSION\Example\shapes\4800k_Pol.shp C:\FUSION\Example\las_4800K_data_shape.las C:\FUSION\Example\las_4800K_data_gnd_filtered.las
+
+c:\FUSION\PolyClipData C:\FUSION\Example\shapes\4800k_Pol.shp C:\FUSION\Example\las_4800K_data_shape2.las C:\FUSION\Example\las_4800K_data_filtered.las
+
+pause
